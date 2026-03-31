@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>✨ Nebula Cube | Touch & Drag 3D Experience</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', 'Poppins', 'SF Pro Text', system-ui, -apple-system, sans-serif;
+    }
+    
+    /* Info overlay - polished glassmorphism */
+    .info-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    .info-card {
+      display: inline-block;
+      background: rgba(10, 10, 20, 0.65);
+      backdrop-filter: blur(10px);
+      border-radius: 60px;
+      padding: 10px 24px;
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    
+    .info-card span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .info-card i {
+      font-style: normal;
+      font-size: 1.2rem;
+    }
+    
+    .badge {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 0.7rem;
+      font-family: monospace;
+      color: #0f0;
+      letter-spacing: 1px;
+      pointer-events: none;
+      z-index: 10;
+      border: 1px solid rgba(0,255,136,0.3);
+    }
+    
+    @media (max-width: 600px) {
+      .info-card { font-size: 0.7rem; padding: 6px 16px; }
+      .badge { top: 10px; right: 12px; font-size: 0.6rem; }
+    }
+    
+    /* subtle loading or just decorative */
+    canvas {
+      display: block;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="badge">✨ 3D CORE | TOUCH READY</div>
+  <div class="info-panel">
+    <div class="info-card">
+      <span>🖐️ ONE-FINGER ROTATE | ✌️ TWO-FINGER ZOOM</span>
+    </div>
+  </div>
+
+  <!-- Three.js Core + Addons via CDN (modern stable) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    
+    // ============================================================
+    // 1. SETUP SCENE WITH CINEMATIC ATMOSPHERE
+    // ============================================================
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050b1a);
+    scene.fog = new THREE.FogExp2(0x050b1a, 0.008); // subtle fog for depth
+    
+    // Camera: perspective with slightly wider FOV for immersion
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(3, 1.5, 5);
+    camera.lookAt(0, 0, 0);
+    
+    // Renderer: high quality + alpha blending
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    document.body.appendChild(renderer.domElement);
+    
+    // ============================================================
+    // 2. POST PROCESSING - GLOW & BLOOM (Premium effect)
+    // ============================================================
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.3, 0.85);
+    bloomPass.threshold = 0.1;  // bloom intensity threshold
+    bloomPass.strength = 0.65;
+    bloomPass.radius = 0.5;
+    
+    const effectComposer = new EffectComposer(renderer);
+    effectComposer.addPass(renderScene);
+    effectComposer.addPass(bloomPass);
+    
+    // ============================================================
+    // 3. ORBIT CONTROLS (super smooth touch/drag)
+    // ============================================================
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;          // inertia effect
+    controls.dampingFactor = 0.05;
+    controls.rotateSpeed = 1.2;
+    controls.zoomSpeed = 1.0;
+    controls.panSpeed = 0.8;
+    controls.enableZoom = true;
+    controls.enablePan = true;
+    controls.zoomSpeed = 0.8;
+    controls.touchRotate = true;
+    controls.touchZoom = true;
+    controls.autoRotate = false;            // manual control only (user-driven)
+    controls.target.set(0, 0, 0);
+    
+    // ============================================================
+    // 4. THE CUBE - METALLIC + DYNAMIC MATERIAL
+    // ============================================================
+    // Geometry: beveled edges feel more premium (using standard BoxGeometry but with rounded look via material + environment)
+    const geometry = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+    
+    // Custom material with high reflectivity and color shift
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x2effbc,
+      emissive: 0x0a2a1f,
+      emissiveIntensity: 0.22,
+      metalness: 0.85,
+      roughness: 0.28,
+      flatShading: false,
+      transparent: false
+    });
+    
+    const cube = new THREE.Mesh(geometry, material);
+    cube.castShadow = true;
+    cube.receiveShadow = false;  // minor performance
+    scene.add(cube);
+    
+    // Add wireframe edge glow effect using EdgesGeometry + LineSegments
+    const edgesGeo = new THREE.EdgesGeometry(geometry);
+    const edgesMat = new THREE.LineBasicMaterial({ color: 0x88ffcc, linewidth: 1 });
+    // note: linewidth support varies, but adds style
+    const wireframe = new THREE.LineSegments(edgesGeo, edgesMat);
+    cube.add(wireframe); // attach edges to cube so they rotate together
+    
+    // ============================================================
+    // 5. DYNAMIC LIGHTING SYSTEM (Cinematic & vibrant)
+    // ============================================================
+    // Ambient light: soft fill
+    const ambientLight = new THREE.AmbientLight(0x22223b, 0.55);
+    scene.add(ambientLight);
+    
+    // Key light: directional (warm)
+    const mainLight = new THREE.DirectionalLight(0xffdd99, 1.2);
+    mainLight.position.set(2, 3, 4);
+    mainLight.castShadow = true;
+    mainLight.receiveShadow = false;
+    mainLight.shadow.mapSize.width = 1024;
+    mainLight.shadow.mapSize.height = 1024;
+    scene.add(mainLight);
+    
+    // Fill light: cool blue from below
+    const fillLight = new THREE.PointLight(0x4488ff, 0.5);
+    fillLight.position.set(0, -2, 0);
+    scene.add(fillLight);
+    
+    // Back rim light (magenta/cyan) for dramatic edge
+    const rimLight = new THREE.PointLight(0xff44aa, 0.65);
+    rimLight.position.set(-2, 1.5, -3);
+    scene.add(rimLight);
+    
+    // Additional moving colored light for dynamic effect
+    const colorLight = new THREE.PointLight(0xffaa33, 0.7);
+    colorLight.position.set(1.5, 1, 2);
+    scene.add(colorLight);
+    
+    // Small point light at cube position to enhance glow
+    const coreGlow = new THREE.PointLight(0x66ffcc, 0.4);
+    cube.add(coreGlow); // attaches to cube, moves with rotation!
+    
+    // ============================================================
+    // 6. ENVIRONMENT: FLOATING PARTICLES & STARFIELD (Depth)
+    // ============================================================
+    // Starfield background particles (tiny stars)
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 1500;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      starPositions[i*3] = (Math.random() - 0.5) * 200;
+      starPositions[i*3+1] = (Math.random() - 0.5) * 100;
+      starPositions[i*3+2] = (Math.random() - 0.5) * 80 - 40;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.12, transparent: true, opacity: 0.7 });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+    
+    // Floating particle cloud around cube (orbiting effect)
+    const particleCount = 800;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePositions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      // spherical distribution radius 2.2 to 3.5
+      const radius = 2.2 + Math.random() * 1.5;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      particlePositions[i*3] = radius * Math.sin(phi) * Math.cos(theta);
+      particlePositions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta);
+      particlePositions[i*3+2] = radius * Math.cos(phi);
+    }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    const particleMat = new THREE.PointsMaterial({ color: 0x66ffcc, size: 0.045, transparent: true, blending: THREE.AdditiveBlending });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+    
+    // Rotating particle ring (toroidal effect)
+    const ringParticleCount = 400;
+    const ringGeo = new THREE.BufferGeometry();
+    const ringPositions = new Float32Array(ringParticleCount * 3);
+    for (let i = 0; i < ringParticleCount; i++) {
+      const angle = (i / ringParticleCount) * Math.PI * 2;
+      const radius = 2.4;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const y = Math.sin(angle * 3) * 0.35; // wavy ring
+      ringPositions[i*3] = x;
+      ringPositions[i*3+1] = y;
+      ringPositions[i*3+2] = z;
+    }
+    ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPositions, 3));
+    const ringMat = new THREE.PointsMaterial({ color: 0xffaa66, size: 0.05, transparent: true, blending: THREE.AdditiveBlending });
+    const ringParticles = new THREE.Points(ringGeo, ringMat);
+    scene.add(ringParticles);
+    
+    // ============================================================
+    // 7. FLOATING GRID FLOOR (subtle reference)
+    // ============================================================
+    const gridHelper = new THREE.GridHelper(12, 24, 0x88aaff, 0x335588);
+    gridHelper.position.y = -1.4;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.25;
+    scene.add(gridHelper);
+    
+    // Simple reflective ground disc (invisible but adds shadow catch)
+    const planeDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(3.5, 16),
+      new THREE.MeshStandardMaterial({ color: 0x112233, roughness: 0.6, metalness: 0.2, transparent: true, opacity: 0.2 })
+    );
+    planeDisc.rotation.x = -Math.PI / 2;
+    planeDisc.position.y = -1.45;
+    scene.add(planeDisc);
+    
+    // ============================================================
+    // 8. ANIMATION VARIABLES (gentle floating + particle rotation)
+    // ============================================================
+    let time = 0;
+    
+    // subtle floating animation for cube (micro-motion)
+    let floatY = 0;
+    let floatDirection = 0.003;
+    
+    // ============================================================
+    // 9. RESIZE HANDLER (responsive)
+    // ============================================================
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      effectComposer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    // ============================================================
+    // 10. HELPER: UPDATE LIGHT COLORS & DYNAMIC EFFECTS
+    // ============================================================
+    function updateDynamicLights(t) {
+      // color light cycles smoothly
+      const hue = (t * 0.2) % (Math.PI * 2);
+      const r = Math.sin(hue) * 0.5 + 0.5;
+      const g = Math.sin(hue + 2.0) * 0.5 + 0.5;
+      const b = Math.sin(hue + 4.0) * 0.5 + 0.5;
+      colorLight.color.setRGB(r * 0.8, g * 0.6, b);
+      
+      // rim light intensity pulse
+      const pulse = Math.sin(t * 1.8) * 0.2 + 0.6;
+      rimLight.intensity = pulse;
+      
+      // core glow intensity
+      coreGlow.intensity = 0.35 + Math.sin(t * 2.5) * 0.12;
+      
+      // slight material emissive pulse
+      material.emissiveIntensity = 0.22 + Math.sin(t * 1.2) * 0.08;
+    }
+    
+    // ============================================================
+    // 11. ANIMATION LOOP (SMOOTH 60FPS)
+    // ============================================================
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      time += 0.016; // approximate delta smoothness
+      
+      // 1. Cube gentle floating + micro rotation (makes it alive but not overriding user control)
+      //    Since orbit controls rotates camera, cube stays relative, but we add tiny independent hover
+      floatY += floatDirection;
+      if (floatY > 0.08 || floatY < -0.08) floatDirection *= -1;
+      cube.position.y = floatY * 0.06;
+      
+      // slight self-rotation (very slow) that does not conflict with user orbit — just character
+      // but to keep experience intuitive, we rotate cube only a tiny bit on local Y axis
+      // (OrbitControls rotates the view, cube rotates locally gives extra magic)
+      cube.rotation.y += 0.002;
+      cube.rotation.x += 0.001;
+      cube.rotation.z += 0.0005;
+      
+      // 2. Particle animation: rotate particle cloud and ring slowly
+      particles.rotation.y += 0.003;
+      particles.rotation.x += 0.002;
+      ringParticles.rotation.y += 0.008;
+      ringParticles.rotation.z += 0.004;
+      
+      // 3. Starfield moves slightly for parallax
+      stars.rotation.y += 0.0002;
+      stars.rotation.x += 0.0001;
+      
+      // 4. Update lighting dynamics
+      updateDynamicLights(time);
+      
+      // 5. Update controls (for damping inertia)
+      controls.update();
+      
+      // 6. Render via EffectComposer (bloom & glow)
+      effectComposer.render();
+    }
+    
+    // ============================================================
+    // 12. START EXPERIENCE
+    // ============================================================
+    animate();
+    
+    // small console greeting (optional)
+    console.log('✨ Nebula Cube ready | Hand-controlled 3D experience');
+  </script>
+</body>
+</html>
