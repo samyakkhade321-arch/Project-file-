@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>HACKER PAC-MAN | Neon Ghost Chase</title>
+
+    <!-- 👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻-->
+    <!-- Hacker Theme Pac-Man with 5 Difficulty Levels | Hand Gesture + Touch Controls -->
+    <!-- 👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻-->
+
+    <link rel="icon" href="https://i.ibb.co/M6KTWnf/pic.jpg" />
+    <link rel="stylesheet" href="style.css" />
+    
+    <style>
+      /* Additional hacker theme styles that complement the CSS */
+      * {
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      body {
+        background: #0a0c0f;
+        overflow-x: hidden;
+      }
+      
+      /* Matrix rain effect overlay */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(0deg, rgba(0, 255, 65, 0.03) 0px, rgba(0, 255, 65, 0.03) 2px, transparent 2px, transparent 6px);
+        pointer-events: none;
+        z-index: 0;
+      }
+      
+      .wrapper {
+        position: relative;
+        z-index: 1;
+      }
+      
+      /* Difficulty indicator animation */
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; text-shadow: 0 0 5px #00ff41; }
+      }
+      
+      .difficulty-badge {
+        animation: pulse 2s ease-in-out infinite;
+      }
+      
+      /* Level up notification */
+      .level-up-notification {
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.95);
+        border: 2px solid #00ff41;
+        border-radius: 8px;
+        padding: 20px 40px;
+        color: #00ff41;
+        font-family: 'Courier New', monospace;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        z-index: 1000;
+        box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+        animation: glitch 0.3s ease-in-out;
+        white-space: nowrap;
+      }
+      
+      @keyframes glitch {
+        0%, 100% { transform: translate(-50%, -50%); }
+        25% { transform: translate(-52%, -50%); }
+        75% { transform: translate(-48%, -50%); }
+      }
+      
+      /* Mobile optimization */
+      @media (max-width: 768px) {
+        .level-up-notification {
+          font-size: 18px;
+          padding: 15px 30px;
+          white-space: nowrap;
+        }
+        
+        .level-buttons {
+          gap: 8px;
+        }
+        
+        .level-btn {
+          padding: 12px 16px;
+        }
+      }
+      
+      /* Desktop hover effects */
+      @media (min-width: 769px) {
+        .level-btn:hover {
+          transform: translateX(5px);
+          box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+        }
+      }
+      
+      /* Gesture indicator */
+      .gesture-indicator {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid #00ff41;
+        border-radius: 20px;
+        padding: 8px 16px;
+        color: #00ff41;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 100;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      
+      .gesture-indicator.show {
+        opacity: 1;
+      }
+      
+      /* Difficulty selector modal */
+      .difficulty-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        padding: 20px;
+        transition: all 0.3s;
+      }
+      
+      .difficulty-modal.hidden {
+        display: none;
+      }
+      
+      .difficulty-box {
+        background: #0a0c0f;
+        border: 2px solid #00ff41;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 0 50px rgba(0, 255, 65, 0.3);
+      }
+      
+      .difficulty-box h2 {
+        color: #00ff41;
+        font-family: 'Courier New', monospace;
+        margin-bottom: 20px;
+        font-size: 28px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      
+      .difficulty-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 20px 0;
+      }
+      
+      .difficulty-option {
+        padding: 15px;
+        border: 1px solid #00ff41;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #00ff41;
+        font-family: monospace;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+      }
+      
+      .difficulty-option:hover {
+        background: rgba(0, 255, 65, 0.2);
+        transform: translateX(5px);
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+      }
+      
+      .difficulty-name {
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 5px;
+      }
+      
+      .difficulty-desc {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+      
+      .close-difficulty {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: transparent;
+        border: 1px solid #00ff41;
+        color: #00ff41;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: monospace;
+      }
+      
+      .close-difficulty:hover {
+        background: rgba(0, 255, 65, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <h1 class="title">HACKER PAC-MAN</h1>
+        <div class="scoreboard">
+          <div class="score-label">
+            🎯 SCORE: <span id="score">0</span>
+          </div>
+          <div class="lives-label">
+            💚 LIVES: <span id="lives">3</span>
+          </div>
+          <div class="level-label difficulty-badge">
+            ⚡ LEVEL: <span id="level">1 (Easy)</span>
+          </div>
+          <button id="restartBtn" class="restart-btn">🔄 RESTART</button>
+          <button id="difficultyBtn" class="restart-btn">🎮 DIFFICULTY</button>
+        </div>
+      </header>
+
+      <main class="game-container">
+        <canvas id="gameCanvas" width="560" height="620"></canvas>
+        <div class="controls-info">
+          <div class="control-method">
+            ⌨️ <strong>KEYBOARD:</strong> Arrow Keys / WASD
+          </div>
+          <div class="control-method">
+            📱 <strong>TOUCH:</strong> Swipe on canvas or use buttons
+          </div>
+          <div class="control-method">
+            ✋ <strong>GESTURE:</strong> Tilt your device (Click Enable Gesture)
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Difficulty Selection Modal -->
+    <div id="difficultyModal" class="difficulty-modal hidden">
+      <div class="difficulty-box">
+        <h2>⚡ SELECT DIFFICULTY ⚡</h2>
+        <div class="difficulty-buttons">
+          <div class="difficulty-option" data-level="1">
+            <div class="difficulty-name">🔰 LEVEL 1 - EASY</div>
+            <div class="difficulty-desc">Slow ghosts (speed 4) | 2 ghosts | Normal points</div>
+          </div>
+          <div class="difficulty-option" data-level="2">
+            <div class="difficulty-name">⚙️ LEVEL 2 - MEDIUM</div>
+            <div class="difficulty-desc">Medium ghosts (speed 6) | 3 ghosts | Normal points</div>
+          </div>
+          <div class="difficulty-option" data-level="3">
+            <div class="difficulty-name">🔥 LEVEL 3 - HARD</div>
+            <div class="difficulty-desc">Fast ghosts (speed 8) | 4 ghosts | Normal points</div>
+          </div>
+          <div class="difficulty-option" data-level="4">
+            <div class="difficulty-name">💀 LEVEL 4 - EXPERT</div>
+            <div class="difficulty-desc">Very fast ghosts (speed 10) | 4 ghosts | 2x points</div>
+          </div>
+          <div class="difficulty-option" data-level="5">
+            <div class="difficulty-name">👾 LEVEL 5 - NIGHTMARE</div>
+            <div class="difficulty-desc">Extreme ghosts (speed 12) | 5 ghosts | 3x points</div>
+          </div>
+        </div>
+        <button class="close-difficulty" id="closeDifficultyBtn">CLOSE</button>
+      </div>
+    </div>
+
+    <!-- Gesture Indicator -->
+    <div id="gestureIndicator" class="gesture-indicator">
+      🎮 Gesture Mode: OFF
+    </div>
+
+    <script src="1script.js"></script>
+  </body>
+</html>
